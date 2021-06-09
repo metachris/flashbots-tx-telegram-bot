@@ -14,28 +14,28 @@ type PostgresConfig struct {
 }
 
 type Config struct {
-	Database         PostgresConfig
+	Database PostgresConfig
+
+	FlashbotsTxServerUrl string
+
 	TelegramApiKey   string
 	TelegramBotDebug bool
 }
 
-var Cfg Config
-
-func init() {
-	dbConfig := PostgresConfig{
+var Cfg Config = Config{
+	Database: PostgresConfig{
 		User:       getEnvStr("DB_USER", ""),
 		Password:   getEnvStr("DB_PASS", ""),
 		Host:       getEnvStr("DB_HOST", ""),
 		Name:       getEnvStr("DB_NAME", ""),
 		DisableTLS: len(getEnvStr("DB_DISABLE_TLS", "")) > 0,
-	}
+	},
+	TelegramApiKey:       getEnvStr("TG_API_KEY", ""),
+	TelegramBotDebug:     getEnvBool("TG_DEBUG", false),
+	FlashbotsTxServerUrl: getEnvStr("FLASHBOTS_SERVER", ""),
+}
 
-	Cfg = Config{
-		Database:         dbConfig,
-		TelegramApiKey:   getEnvStr("TG_API_KEY", ""),
-		TelegramBotDebug: getEnvBool("TG_DEBUG", false),
-	}
-
+func init() {
 	if Cfg.Database.Host == "" {
 		log.Fatal("Database env var not set")
 	}

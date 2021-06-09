@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
@@ -58,11 +59,15 @@ func (b *BotService) SendToSubscribers(msg string) {
 		return
 	}
 
+	if len(msg) > 4096 {
+		msg = fmt.Sprintf("%s...", msg[:4000])
+	}
+
 	for _, v := range subs {
-		if v.IsSubscribed {
-			botMsg := tgbotapi.NewMessage(v.ChatId, msg)
-			b.Bot.Send(botMsg)
-		}
+		log.Println("sending to", v.ChatId)
+		botMsg := tgbotapi.NewMessage(v.ChatId, msg)
+		botMsg.ParseMode = "Markdown"
+		b.Bot.Send(botMsg)
 	}
 }
 
@@ -77,8 +82,10 @@ func (b *BotService) HandleUpdate(update tgbotapi.Update) {
 		entry, exists := b.Participants[update.Message.Chat.ID]
 		if !exists {
 			entry = &Participant{
-				ChatId:   update.Message.Chat.ID,
-				Username: update.Message.From.UserName,
+				ChatId:    update.Message.Chat.ID,
+				Username:  update.Message.From.UserName,
+				FirstName: update.Message.From.FirstName,
+				LastName:  update.Message.From.LastName,
 			}
 			b.Participants[update.Message.Chat.ID] = entry
 		}
@@ -86,7 +93,7 @@ func (b *BotService) HandleUpdate(update tgbotapi.Update) {
 		b.Database.UpdateParticipant(entry)
 		log.Println("Subscribed", entry)
 
-		msg := tgbotapi.NewMessage(update.Message.Chat.ID, "You are now subscribed to failed Flashbots transactions")
+		msg := tgbotapi.NewMessage(update.Message.Chat.ID, "You are now subscribed to failed Flashbots transactions. Type /stop to stop anytime.")
 		msg.ReplyToMessageID = update.Message.MessageID
 		b.Bot.Send(msg)
 
@@ -99,7 +106,7 @@ func (b *BotService) HandleUpdate(update tgbotapi.Update) {
 			log.Println("Unsubscribed", entry)
 			// log.Println(GetSubs())
 
-			msg := tgbotapi.NewMessage(update.Message.Chat.ID, "You are now unsubscribed")
+			msg := tgbotapi.NewMessage(update.Message.Chat.ID, "You are now unsubscribed. Type /start to subscribe.")
 			msg.ReplyToMessageID = update.Message.MessageID
 			b.Bot.Send(msg)
 		}
